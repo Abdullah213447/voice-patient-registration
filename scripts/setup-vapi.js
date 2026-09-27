@@ -61,12 +61,21 @@ let phone = numbers.find((n) => n.name === NUMBER_NAME || n.assistantId === assi
 if (phone) {
   phone = await vapi('PATCH', `/phone-number/${phone.id}`, { assistantId: assistant.id });
 } else {
-  phone = await vapi('POST', '/phone-number', {
-    provider: 'vapi',
-    name: NUMBER_NAME,
-    assistantId: assistant.id,
-    ...(env.VAPI_PHONE_AREA_CODE ? { numberDesiredAreaCode: env.VAPI_PHONE_AREA_CODE } : {}),
-  });
+  // Free Vapi numbers need an area code and availability varies, so try a few.
+  const areaCodes = env.VAPI_PHONE_AREA_CODE
+    ? [env.VAPI_PHONE_AREA_CODE]
+    : ['415', '628', '510', '346', '737', '512', '646', '929', '470', '321', '531', '930'];
+  for (const numberDesiredAreaCode of areaCodes) {
+    try {
+      phone = await vapi('POST', '/phone-number', {
+        provider: 'vapi', name: NUMBER_NAME, assistantId: assistant.id, numberDesiredAreaCode,
+      });
+      break;
+    } catch (err) {
+      console.warn(`Area code ${numberDesiredAreaCode} unavailable: ${err.message}`);
+    }
+  }
+  if (!phone) throw new Error('Could not provision a phone number in any tried area code.');
 }
 
 // Free Vapi numbers can take a moment to activate.

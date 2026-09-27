@@ -6,7 +6,7 @@ A phone-based AI intake coordinator that registers new U.S. patients through nat
 
 | | |
 |---|---|
-| **Phone number** | `__PHONE_NUMBER__` |
+| **Phone number** | **+1 (628) 241-4325** |
 | **API base URL** | https://api-production-fdac.up.railway.app |
 | **Dashboard** | https://api-production-fdac.up.railway.app/dashboard |
 | **Health** | https://api-production-fdac.up.railway.app/health |
