@@ -9,7 +9,7 @@ const patientProperties = {
   last_name: { type: 'string', description: 'Legal last name, exactly as the caller spelled it.' },
   date_of_birth: { type: 'string', description: 'Date of birth in MM/DD/YYYY format.' },
   sex: { type: 'string', enum: SEX_VALUES },
-  phone_number: { type: 'string', description: '10-digit U.S. phone number, digits only.' },
+  phone_number: { type: 'string', description: '10-digit U.S. phone number, digits only, exactly as the caller said it (never add or drop digits).' },
   email: { type: 'string', description: 'Email address (optional).' },
   address_line_1: { type: 'string', description: 'Street number and name.' },
   address_line_2: { type: 'string', description: 'Apartment, suite, or unit (optional).' },
