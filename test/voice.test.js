@@ -99,3 +99,16 @@ test('end-of-call-report stores the transcript and marks dropped calls incomplet
   const { rows: reg } = await db.query('SELECT outcome FROM calls WHERE call_id = $1', ['call-register']);
   assert.equal(reg[0].outcome, 'registered');
 });
+
+test('get_current_time returns clinic time, honours a requested timezone, and survives bad input', async () => {
+  const clinic = await callTool('get_current_time', {});
+  assert.equal(clinic.status, 'ok');
+  assert.equal(clinic.timezone, 'America/New_York');
+  assert.match(clinic.time, /^\d{1,2}:\d{2}\s?[AP]M$/);
+  assert.match(clinic.timezone_name, /Eastern/);
+  const la = await callTool('get_current_time', { timezone: 'America/Los_Angeles' });
+  assert.match(la.timezone_name, /Pacific/);
+  const bogus = await callTool('get_current_time', { timezone: 'Mars/Olympus' });
+  assert.equal(bogus.timezone, 'America/New_York');
+  assert.ok(bogus.note);
+});

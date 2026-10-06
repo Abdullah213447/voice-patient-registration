@@ -66,6 +66,20 @@ export const TOOL_DEFINITIONS = [
     },
   },
   {
+    name: 'get_current_time',
+    description:
+      'Get the exact current date and time. Call this whenever the caller asks what time or day it is. Defaults to the clinic timezone.',
+    parameters: {
+      type: 'object',
+      properties: {
+        timezone: {
+          type: 'string',
+          description: 'Optional IANA timezone if the caller asks about a specific place, e.g. America/Los_Angeles.',
+        },
+      },
+    },
+  },
+  {
     name: 'get_appointment_slots',
     description: 'List available first-visit appointment times. Call after a successful registration if the caller wants to book.',
     parameters: {

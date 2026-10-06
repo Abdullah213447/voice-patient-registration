@@ -32,7 +32,9 @@ function parseArguments(raw) {
 
 export function vapiRoutes({ config, patientService, callRepository, appointmentService }) {
   const router = Router();
-  const handlers = createToolHandlers({ patientService, callRepository, appointmentService });
+  const handlers = createToolHandlers({
+    patientService, callRepository, appointmentService, clinicTimezone: config.clinicTimezone,
+  });
 
   router.use((req, res, next) => {
     if (!config.vapiWebhookSecret || secretMatches(config.vapiWebhookSecret, req.get('x-vapi-secret'))) return next();

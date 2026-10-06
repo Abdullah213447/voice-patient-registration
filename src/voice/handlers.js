@@ -39,7 +39,7 @@ function toToolError(err) {
   return { status: 'error', message: 'The record could not be saved due to a temporary system problem.' };
 }
 
-export function createToolHandlers({ patientService, callRepository, appointmentService }) {
+export function createToolHandlers({ patientService, callRepository, appointmentService, clinicTimezone = 'America/New_York' }) {
   // Call-log writes are best effort: a failure there must never break the conversation.
   const recordCall = async (callId, fields) => {
     if (!callId) return;
@@ -107,6 +107,27 @@ export function createToolHandlers({ patientService, callRepository, appointment
       } catch (err) {
         return toToolError(err);
       }
+    },
+
+    async get_current_time({ timezone } = {}, ctx, now = new Date()) {
+      let zone = clinicTimezone;
+      if (timezone) {
+        try {
+          new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+          zone = timezone;
+        } catch {
+          // Unknown zone name from the model: fall back to clinic time and say so.
+        }
+      }
+      const fmt = (opts) => new Intl.DateTimeFormat('en-US', { timeZone: zone, ...opts }).format(now);
+      return {
+        status: 'ok',
+        time: fmt({ hour: 'numeric', minute: '2-digit' }),
+        date: fmt({ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+        timezone: zone,
+        timezone_name: fmt({ timeZoneName: 'long' }).split(', ').pop(),
+        ...(timezone && zone !== timezone ? { note: `Unknown timezone "${timezone}"; showing clinic time.` } : {}),
+      };
     },
 
     async get_appointment_slots({ preferred_date } = {}) {

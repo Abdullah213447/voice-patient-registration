@@ -56,3 +56,13 @@ test('names allow accents, hyphens and apostrophes but not digits', () => {
   const { errors } = validatePatient({ ...validPatient(), first_name: 'R2D2' });
   assert.equal(errors[0].field, 'first_name');
 });
+
+test('ZIP code must belong to the given state', () => {
+  const { errors } = validatePatient({ ...validPatient(), city: 'Miami', state: 'FL', zip_code: '78654' });
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0].field, 'zip_code');
+  assert.match(errors[0].message, /belongs to Texas, not Florida/);
+  assert.deepEqual(validatePatient({ ...validPatient(), city: 'Miami', state: 'FL', zip_code: '33139' }).errors, []);
+  assert.deepEqual(validatePatient({ ...validPatient(), city: 'Boston', state: 'MA', zip_code: '02108' }).errors, []);
+  assert.deepEqual(validatePatient({ ...validPatient(), city: 'San Juan', state: 'PR', zip_code: '00901' }).errors, []);
+});

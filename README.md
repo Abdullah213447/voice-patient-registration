@@ -21,6 +21,7 @@ No credentials are needed. The API is open (rate-limited) and only contains fict
 - **Returning caller:** give `512-555-0142` as your phone number. The agent says it already has a record for Jane Doe and offers to update it instead, after verifying DOB `04/12/1985`.
 - **Start over:** "Can we start over?"
 - **Spanish:** "Hablo español."
+- **Current time:** "What time is it right now?" The agent looks up the live time (Eastern by default, or another U.S. city if you ask).
 - **Second call:** call again, then check `GET /patients`. Earlier registrations are still there, since they are stored in Postgres.
 
 ---
@@ -98,6 +99,8 @@ Normalisation happens on input:
 - `"787011234"` → `78701-1234`
 - `"f"` → `Female`
 
+The ZIP code must belong to the state given: the first three digits are checked against the state's ZIP ranges, so "Miami, FL 78654" (a Texas ZIP) is rejected with a message the agent reads back. Territories and military codes are not cross-checked.
+
 Dates are accepted as `MM/DD/YYYY` or ISO and always **returned as `MM/DD/YYYY`**.
 
 ---
@@ -160,6 +163,7 @@ The full system prompt is in **`src/voice/prompt.js`**, with a header comment ex
 | `find_patient_by_phone` | Duplicate detection right after the phone number is collected. Returns only names + IDs. |
 | `register_patient` | Creates the patient after confirmation. Returns `saved` / `invalid` (with per-field errors) / `error`. |
 | `update_patient` | Returning-caller update. Requires `date_of_birth_verification` to match the stored DOB. |
+| `get_current_time` | Answers "what time is it?" with the live time in the clinic timezone (or a timezone the caller asks about). |
 | `get_appointment_slots`, `book_appointment` | Bonus: mock scheduling after registration. |
 | `endCall` (built in) | Hangs up gracefully after the goodbye. |
 
@@ -185,7 +189,7 @@ nvm use 20            # Node >= 20
 npm install
 cp .env.example .env  # defaults work as-is
 npm run dev           # http://localhost:3000/dashboard  (embedded Postgres in ./data)
-npm test              # 26 tests: validation, REST API, voice webhook (in-memory Postgres)
+npm test              # 28 tests: validation, REST API, voice webhook (in-memory Postgres)
 ```
 
 Set `DATABASE_URL` to use a real Postgres instead of the embedded one.

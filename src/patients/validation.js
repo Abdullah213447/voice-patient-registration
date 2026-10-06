@@ -166,6 +166,42 @@ export const PATIENT_FIELDS = {
 
 export const PATIENT_FIELD_NAMES = Object.keys(PATIENT_FIELDS);
 
+// First three digits of a ZIP code -> state. Used to catch "Miami, FL 78654"
+// (a Texas ZIP). Ranges are inclusive. Territories and military codes are not
+// checked (several share or overlap prefixes).
+const ZIP3_RANGES = {
+  AL: [[350, 369]], AK: [[995, 999]], AZ: [[850, 865]], AR: [[716, 729]],
+  CA: [[900, 961]], CO: [[800, 816]], CT: [[60, 69]], DE: [[197, 199]],
+  DC: [[200, 205], [569, 569]], FL: [[320, 349]], GA: [[300, 319], [398, 399]],
+  HI: [[967, 968]], ID: [[832, 838]], IL: [[600, 629]], IN: [[460, 479]],
+  IA: [[500, 528]], KS: [[660, 679]], KY: [[400, 427]], LA: [[700, 714]],
+  ME: [[39, 49]], MD: [[206, 219]], MA: [[10, 27], [55, 55]], MI: [[480, 499]],
+  MN: [[550, 567]], MS: [[386, 397]], MO: [[630, 658]], MT: [[590, 599]],
+  NE: [[680, 693]], NV: [[889, 898]], NH: [[30, 38]], NJ: [[70, 89]],
+  NM: [[870, 884]], NY: [[100, 149], [5, 5], [63, 63]], NC: [[270, 289]],
+  ND: [[580, 588]], OH: [[430, 459]], OK: [[730, 749]], OR: [[970, 979]],
+  PA: [[150, 196]], RI: [[28, 29]], SC: [[290, 299]], SD: [[570, 577]],
+  TN: [[370, 385]], TX: [[750, 799], [885, 885]], UT: [[840, 847]], VT: [[50, 59]],
+  VA: [[201, 201], [220, 246]], WA: [[980, 994]], WV: [[247, 268]],
+  WI: [[530, 549]], WY: [[820, 831]],
+};
+
+export function stateForZip(zip) {
+  const prefix = Number(String(zip).slice(0, 3));
+  for (const [state, ranges] of Object.entries(ZIP3_RANGES)) {
+    if (ranges.some(([lo, hi]) => prefix >= lo && prefix <= hi)) return state;
+  }
+  return null;
+}
+
+/** Null when consistent or not checkable; otherwise a human-readable message. */
+export function zipStateMismatch(zip, state) {
+  if (!zip || !state || !ZIP3_RANGES[state]) return null;
+  const expected = stateForZip(zip);
+  if (!expected || expected === state) return null;
+  return `zip_code ${zip} belongs to ${US_STATES[expected]}, not ${US_STATES[state]}; please confirm the ZIP code and state`;
+}
+
 const isBlank = (v) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
 
 /**
@@ -194,6 +230,11 @@ export function validatePatient(input, { partial = false } = {}) {
       if (!(err instanceof FieldError)) throw err;
       errors.push({ field, message: `${field} ${err.message}` });
     }
+  }
+
+  if (!errors.some((e) => e.field === 'zip_code' || e.field === 'state')) {
+    const mismatch = zipStateMismatch(value.zip_code, value.state);
+    if (mismatch) errors.push({ field: 'zip_code', message: mismatch });
   }
 
   if (!partial) {
