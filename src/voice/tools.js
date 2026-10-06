@@ -74,7 +74,7 @@ export const TOOL_DEFINITIONS = [
       properties: {
         timezone: {
           type: 'string',
-          description: 'Optional IANA timezone if the caller asks about a specific place, e.g. America/Los_Angeles.',
+          description: 'Leave this out unless the caller explicitly names a city, state or timezone. If omitted, clinic time is used.',
         },
       },
     },
