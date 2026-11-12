@@ -7,9 +7,9 @@ A phone-based AI intake coordinator that registers new U.S. patients through nat
 | | |
 |---|---|
 | **Phone number** | **+1 (628) 241-4325** |
-| **API base URL** | https://api-production-fdac.up.railway.app |
-| **Dashboard** | https://api-production-fdac.up.railway.app/dashboard |
-| **Health** | https://api-production-fdac.up.railway.app/health |
+| **API base URL** | https://voice-patient-registration-lyart.vercel.app |
+| **Dashboard** | https://voice-patient-registration-lyart.vercel.app/dashboard |
+| **Health** | https://voice-patient-registration-lyart.vercel.app/health |
 
 No credentials are needed. The API is open (rate-limited) and only contains fictional data. Two seed patients exist: **Jane Doe** (phone `512-555-0142`, DOB `04/12/1985`) and **Carlos Rivera** (phone `305-555-0187`).
 
@@ -32,7 +32,7 @@ No credentials are needed. The API is open (rate-limited) and only contains fict
  Caller ──PSTN──▶ Vapi (telephony · Deepgram STT · GPT-4.1 · ElevenLabs TTS)
                      │  tool calls / status / end-of-call report  (HTTPS webhook + shared secret)
                      ▼
-            ┌──────────────────── Node.js service (Railway) ─────────────────────┐
+            ┌──────────────────── Node.js service (Vercel) ─────────────────────┐
             │  voice/webhook.js ──▶ voice/handlers.js ─┐                          │
             │                                           ├─▶ patients/service.js ──▶ patients/repository.js ─┐
             │  REST  /patients  ─▶ patients/routes.js ──┘      (validation)                                 │
@@ -62,9 +62,9 @@ The voice agent calls the **same service layer** as `POST /patients` (the spec a
 | **Deepgram nova-3 `multi`** | Fast streaming STT that handles English/Spanish code-switching, needed for the "Hablo español" case. |
 | **ElevenLabs turbo v2.5** | Natural-sounding, multilingual, low time-to-first-audio. |
 | **Node 20 + Express 5** | Small surface; Express 5 forwards async errors to the error handler natively. |
-| **PostgreSQL** | Real types (`UUID`, `DATE`, `TIMESTAMPTZ`, `JSONB`), CHECK constraints, partial indexes. Railway-managed with a persistent volume. |
+| **PostgreSQL** | Real types (`UUID`, `DATE`, `TIMESTAMPTZ`, `JSONB`), CHECK constraints, partial indexes. Hosted on Neon (free tier) in production. |
 | **PGlite** for local dev/tests | Embedded WASM Postgres: same SQL and constraints as production, zero setup, and in-memory for tests. |
-| **Railway** | Always-on (no cold starts, which would time out voice webhooks), managed Postgres, one-command deploys. |
+| **Vercel + Neon** | Free hosting with ~1s cold starts (Vercel Functions, Neon serverless Postgres), so voice webhooks don't time out the way sleeping free-tier containers would. Railway also works (see below). |
 
 ---
 
@@ -130,7 +130,7 @@ Status codes:
 - **500**: unexpected errors, logged and returned without internals.
 
 ```bash
-B=https://api-production-fdac.up.railway.app
+B=https://voice-patient-registration-lyart.vercel.app
 curl "$B/patients?last_name=doe"
 curl -X POST $B/patients -H 'content-type: application/json' -d '{
   "first_name":"Ana","last_name":"Lopez","date_of_birth":"02/14/1988","sex":"Female",
@@ -200,7 +200,20 @@ VAPI_API_KEY=... PUBLIC_BASE_URL=https://<tunnel-host> npm run setup:vapi
 ```
 The script creates or updates the assistant and provisions (or reuses) a free Vapi U.S. number bound to it. It is safe to re-run.
 
+### Deploying (Vercel + Neon, free)
+`src/vercel.js` exports the same Express app for Vercel Functions (`vercel.json` routes every path to it). Serverless instances don't migrate on boot, so apply the schema once per change.
+```bash
+vercel link
+vercel integration add neon --billing-plan free_v3      # sets DATABASE_URL on the project
+printf '<random>' | vercel env add VAPI_WEBHOOK_SECRET production
+printf '3' | vercel env add PG_POOL_MAX production
+DATABASE_URL=<neon unpooled url> npm run db:migrate     # schema + demo patients
+vercel deploy --prod
+VAPI_API_KEY=... PUBLIC_BASE_URL=https://<vercel-domain> npm run setup:vapi
+```
+
 ### Deploying (Railway)
+`src/server.js` migrates on boot, so a long-running host needs no extra step.
 ```bash
 railway init && railway add -d postgres
 railway add -s api -v 'DATABASE_URL=${{Postgres.DATABASE_URL}}' -v VAPI_WEBHOOK_SECRET=<random>
@@ -213,6 +226,7 @@ VAPI_API_KEY=... PUBLIC_BASE_URL=https://<railway-domain> npm run setup:vapi
 | Variable | Required | Description |
 |---|---|---|
 | `DATABASE_URL` | prod | Postgres connection string. If unset, embedded PGlite is used. |
+| `PG_POOL_MAX` | no | Max Postgres connections per instance (default 10; use ~3 on serverless). |
 | `PGLITE_DIR` | no | Data directory for embedded Postgres (default `./data/pglite`). |
 | `VAPI_WEBHOOK_SECRET` | yes (prod) | Shared secret that Vapi sends as `x-vapi-secret`. |
 | `PORT` | no | Default 3000 (Railway sets it). |
@@ -224,7 +238,7 @@ VAPI_API_KEY=... PUBLIC_BASE_URL=https://<railway-domain> npm run setup:vapi
 | `VAPI_MODEL(_PROVIDER)`, `VAPI_VOICE_ID/_PROVIDER/_MODEL`, `VAPI_PHONE_AREA_CODE` | no | Override the LLM, voice, or number area code at setup. |
 
 ### Observability
-Structured JSON logs (pino) go to stdout and are visible with `railway logs`. Logged events:
+Structured JSON logs (pino) go to stdout and are visible with `vercel logs` (or `railway logs`). Logged events:
 - every tool call and its result
 - the full `register_patient` payload
 - a final transcript and summary line per call
@@ -255,6 +269,7 @@ Transcripts are also stored in the `calls` table and shown in the dashboard.
 ```
 src/
   server.js            boot: DB connect → migrate → seed → listen; graceful shutdown
+  vercel.js            serverless entry: exports the app (no migrate; run npm run db:migrate)
   app.js               Express wiring (routes, security middleware, error handling)
   config.js logger.js
   db/                  schema.sql, connection adapter (pg | PGlite), seed data
@@ -265,5 +280,6 @@ src/
   voice/               prompt.js, tools.js, assistant.js (Vapi config), webhook.js, handlers.js
 public/dashboard.html  bonus dashboard (vanilla JS, reads the REST API)
 scripts/setup-vapi.js  provisions the Vapi assistant + phone number
+scripts/migrate.js     applies the schema + demo seed to DATABASE_URL
 test/                  node:test suites (validation, API, voice webhook)
 ```

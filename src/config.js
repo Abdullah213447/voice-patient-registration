@@ -15,6 +15,8 @@ export const config = {
   // persisted to PGLITE_DIR is used, so local dev needs zero setup.
   databaseUrl: process.env.DATABASE_URL || null,
   pgliteDir: process.env.PGLITE_DIR || './data/pglite',
+  // Keep this small on serverless hosts (many instances x pool size).
+  poolMax: Number(process.env.PG_POOL_MAX) || 10,
   seedDemoData: process.env.SEED_DEMO_DATA !== 'false',
 
   // Shared secret Vapi sends in the `x-vapi-secret` header on every webhook.

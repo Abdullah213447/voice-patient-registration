@@ -6,7 +6,8 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js | pino-pretty",
     "test": "LOG_LEVEL=silent node --test test/",
-    "setup:vapi": "node scripts/setup-vapi.js"
+    "setup:vapi": "node scripts/setup-vapi.js",
+    "db:migrate": "node scripts/migrate.js"
   },
   "license": "MIT",
   "description": "Voice AI agent that registers patients over the phone (Vapi + Express + Postgres)",

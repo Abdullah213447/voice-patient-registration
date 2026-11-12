@@ -11,12 +11,12 @@ const DATE_OID = 1082;
  * - otherwise         -> PGlite, an embedded WASM build of Postgres persisted to
  *                        disk (or memory for tests). Same SQL, same constraints.
  */
-export async function openDatabase({ databaseUrl, pgliteDir }) {
+export async function openDatabase({ databaseUrl, pgliteDir, poolMax = 10 }) {
   if (databaseUrl) {
     const { default: pg } = await import('pg');
     // Keep DATE columns as 'YYYY-MM-DD' strings; JS Date would shift by timezone.
     pg.types.setTypeParser(DATE_OID, (v) => v);
-    const pool = new pg.Pool({ connectionString: databaseUrl, max: 10 });
+    const pool = new pg.Pool({ connectionString: databaseUrl, max: poolMax });
     pool.on('error', (err) => logger.error({ err }, 'postgres pool error'));
     return {
       kind: 'postgres',
