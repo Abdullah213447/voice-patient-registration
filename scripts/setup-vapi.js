@@ -6,7 +6,7 @@
  *
  * Usage:
  *   VAPI_API_KEY=... PUBLIC_BASE_URL=https://your-app.example.com npm run setup:vapi
- * Optional: VAPI_WEBHOOK_SECRET, VAPI_PHONE_AREA_CODE, CLINIC_NAME, CLINIC_TIMEZONE,
+ * Optional: VAPI_WEBHOOK_SECRET, VAPI_PHONE_AREA_CODE, CLINIC_NAME, CLINIC_TIMEZONE, AGENT_NAME,
  *           VAPI_MODEL_PROVIDER / VAPI_MODEL, VAPI_VOICE_PROVIDER / VAPI_VOICE_ID / VAPI_VOICE_MODEL
  */
 import { config } from '../src/config.js';
@@ -38,6 +38,7 @@ const assistantConfig = buildAssistantConfig({
   publicBaseUrl: PUBLIC_BASE_URL,
   webhookSecret: config.vapiWebhookSecret,
   clinicName: config.clinicName,
+  agentName: config.agentName,
   timezone: config.clinicTimezone,
   ...(env.VAPI_MODEL ? { model: { provider: env.VAPI_MODEL_PROVIDER || 'openai', model: env.VAPI_MODEL } } : {}),
   ...(env.VAPI_VOICE_ID ? {

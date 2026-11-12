@@ -26,5 +26,7 @@ export const config = {
   apiKey: process.env.API_KEY || null,
 
   clinicName: process.env.CLINIC_NAME || 'Riverside Family Clinic',
+  // Name the voice agent introduces itself with (used by setup:vapi).
+  agentName: process.env.AGENT_NAME || 'Maya',
   clinicTimezone: process.env.CLINIC_TIMEZONE || 'America/New_York',
 };

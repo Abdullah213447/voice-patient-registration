@@ -118,8 +118,19 @@
     return `<span class="pill ${cls}">${esc(o || 'in progress')}</span>`;
   };
 
-  async function api(path) {
-    const res = await fetch(path, { headers: { accept: 'application/json' } });
+  // When the server sets API_KEY, ask for it once per tab and send it as x-api-key.
+  const KEY_STORE = 'patient-dashboard-api-key';
+  const readKey = () => { try { return sessionStorage.getItem(KEY_STORE) || ''; } catch { return ''; } };
+  const saveKey = (k) => { try { sessionStorage.setItem(KEY_STORE, k); } catch { /* storage blocked */ } };
+  let apiKey = readKey();
+
+  async function api(path, retried = false) {
+    const headers = { accept: 'application/json', ...(apiKey ? { 'x-api-key': apiKey } : {}) };
+    const res = await fetch(path, { headers });
+    if (res.status === 401 && !retried) {
+      const entered = window.prompt('This dashboard is protected. Enter the API key:');
+      if (entered) { apiKey = entered.trim(); saveKey(apiKey); return api(path, true); }
+    }
     const body = await res.json();
     if (body.error) throw new Error(body.error.message);
     return body;

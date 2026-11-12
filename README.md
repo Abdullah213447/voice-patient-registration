@@ -231,8 +231,9 @@ VAPI_API_KEY=... PUBLIC_BASE_URL=https://<railway-domain> npm run setup:vapi
 | `VAPI_WEBHOOK_SECRET` | yes (prod) | Shared secret that Vapi sends as `x-vapi-secret`. |
 | `PORT` | no | Default 3000 (Railway sets it). |
 | `SEED_DEMO_DATA` | no | `false` to skip the 2 demo patients. |
-| `API_KEY` | no | If set, `/patients` and `/calls` require `x-api-key`. |
+| `API_KEY` | no | If set, `/patients` and `/calls` require `x-api-key`; the dashboard asks for it once per tab. |
 | `CLINIC_NAME`, `CLINIC_TIMEZONE` | no | Used in the prompt and for appointment slots. |
+| `AGENT_NAME` | no | Name the agent introduces itself with (default `Maya`); applied by `setup:vapi`. |
 | `LOG_LEVEL` | no | pino level (default `info`). |
 | `VAPI_API_KEY`, `PUBLIC_BASE_URL` | setup only | Used by `npm run setup:vapi`; never needed by the running server. |
 | `VAPI_MODEL(_PROVIDER)`, `VAPI_VOICE_ID/_PROVIDER/_MODEL`, `VAPI_PHONE_AREA_CODE` | no | Override the LLM, voice, or number area code at setup. |
